@@ -247,4 +247,21 @@ mod tests {
         assert_eq!(result.len(), 1);  // should have one row for each statistic
         assert_eq!(result[0].num_columns(), 4);  // describe + three columns
     }
+    #[tokio::test]
+    async fn test_percentile() {
+        let df = create_test_dataframe();
+        let percentile_df = percentile(df.clone(), 0.5).unwrap();
+        
+        let result = percentile_df.collect().await.unwrap();
+        
+        // Verify the percentile values
+        assert_eq!(result.len(), 1); // should have one row for the percentile
+        assert_eq!(result[0].num_columns(), 2); // percentile + one column
+        
+        let float_col = result[0].column(0).as_any().downcast_ref::<Float64Array>().unwrap();
+        assert_eq!(float_col.value(0), 2.5); // median of [1.0, 2.0, 3.0, 4.0] is 2.5
+        
+        let int_col = result[0].column(1).as_any().downcast_ref::<Int32Array>().unwrap();
+        assert_eq!(int_col.value(0), 5); // median of [4, 5, 6, 7] is 5.5 but approx_percentile_cont rounds down to 5
+    }
 }
